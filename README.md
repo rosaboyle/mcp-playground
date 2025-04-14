@@ -202,7 +202,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contrib
 
 ## License
 
-MIT
+MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Acknowledgments
 
