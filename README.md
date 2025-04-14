@@ -1,4 +1,4 @@
-# MCP Playground - Postman for Model Context Protocol
+# MCP Playground - Postman for MCPs
 
 A powerful desktop tool for exploring, debugging, and interacting with Model Context Protocol (MCP) servers, with built-in LLM integration. Think of it as "Postman but for MCPs."
 
@@ -8,7 +8,7 @@ A powerful desktop tool for exploring, debugging, and interacting with Model Con
 
 MCP is a standardized protocol that enables LLMs (Large Language Models) to discover and use external tools, resources, and prompts. This protocol allows for consistent interaction between AI models and various capabilities, creating more powerful AI applications.
 
-You can read more about MCPs in this post
+You can read more about MCPs in this post - https://pai.dev/model-context-protocol-and-why-it-matters-for-ai-agents-88e0e0a7bb73
 
 ## What MCP Playground Does
 
@@ -39,8 +39,8 @@ MCP Playground helps developers:
 
 ### Prerequisites
 
-- Node.js (v18 or higher)
-- npm (v7 or higher)
+- Node.js (v20.16.0 or higher)
+- npm (10.8.1 or higher)
 
 ### Installation Steps
 
@@ -191,6 +191,8 @@ npx ts-node src/test_groq.ts
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines on how to contribute to this project.
 
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
