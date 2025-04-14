@@ -1,0 +1,95 @@
+appId: com.airtrain.trmx-agent
+productName: trmx
+copyright: Copyright © 2023
+
+directories:
+  buildResources: assets
+  output: release
+
+files:
+  - dist/**/*
+  - "!**/__tests__/**"
+  - "!**/*.{ts,map,tsx}"
+  - "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}"
+  - "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}"
+  - "!**/node_modules/*.d.ts"
+  - "!**/node_modules/.bin"
+  - "!**/node_modules/@types/**"
+  - "!**/node_modules/typescript/**"
+  - "!**/node_modules/ts-jest/**"
+  - "!**/node_modules/jest*/**"
+  - "!**/node_modules/webpack*/**"
+  - "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}"
+  - "!.editorconfig"
+  - "!**/._*"
+  - "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}"
+  - "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}"
+  - "!**/{.travis.yml,.gitlab-ci.yml,.github}"
+  - "!**/{appveyor.yml,jest.config.js,jest.setup.js,tsconfig.json}"
+
+asar: true
+compression: maximum
+npmRebuild: false
+
+mac:
+  category: public.app-category.developer-tools
+  darkModeSupport: true
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  target:
+    - dmg
+    - zip
+    - pkg
+  icon: assets/icons/icon.icns
+  notarize: false
+  extraEntitlements:
+    - key: com.apple.security.app-sandbox
+      value: true
+    - key: com.apple.security.files.all
+      value: true
+    - key: com.apple.security.automation.apple-events
+      value: true
+
+dmg:
+  artifactName: "${productName}-${version}.${ext}"
+  contents:
+    - type: link
+      path: /Applications
+      x: 410
+      y: 150
+    - type: file
+      x: 130
+      y: 150
+
+win:
+  target:
+    - nsis
+  icon: assets/icons/icon.ico
+  artifactName: "${productName}-Setup-${version}.${ext}"
+
+nsis:
+  oneClick: true
+  perMachine: false
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: true
+
+linux:
+  category: Development
+  target:
+    - AppImage
+    - deb
+  icon: assets/icons/icon.png
+  artifactName: "${productName}-${version}.${ext}"
+  maintainer: "Airtrain <support@airtrain.dev>"
+
+publish:
+  - provider: s3
+    bucket: mcpx
+    region: us-east-1
+    acl: public-read
+    endpoint: https://s3.amazonaws.com
+    path: builds/${os}/${version}
+
+afterSign: build/afterSign.js 

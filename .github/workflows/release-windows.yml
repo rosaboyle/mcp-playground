@@ -1,0 +1,78 @@
+name: Build and Release Windows
+
+on:
+  push:
+    tags:
+      - 'v*' # Run workflow on version tags, e.g. v1.0.0
+  workflow_dispatch: # Allow manual triggering
+
+# Add permissions at the workflow level
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  release-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build Electron app for Windows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run package:win
+          
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-artifacts
+          path: |
+            release/*.exe
+            release/*.yml
+          if-no-files-found: error
+          
+  publish-windows:
+    needs: release-windows
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    
+    steps:
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-artifacts
+          path: release
+          
+      - name: Create Windows release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          files: release/*
+          name: Windows Release ${{ github.ref_name }}
+          body: |
+            # Trmx Agent Windows ${{ github.ref_name }}
+            
+            ## Automated Windows Release
+            
+            This is an automated Windows release of version ${{ github.ref_name }}
+            
+            ## Downloads
+            
+            - **Windows**: Trmx Agent-Setup-*.exe 

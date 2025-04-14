@@ -1,0 +1,354 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*' # Run workflow on version tags, e.g. v1.0.0
+  workflow_dispatch: # Allow manual triggering
+    inputs:
+      create_tag:
+        description: 'Create a new version tag'
+        required: false
+        default: 'true'
+        type: boolean
+
+# Add permissions at the workflow level
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  # Add a job to create a tag if needed
+  prepare-release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag_name: ${{ steps.tag_version.outputs.tag_name }}
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for tags
+          
+      - name: Read package.json version
+        id: package_version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "package_version=$VERSION" >> $GITHUB_OUTPUT
+          
+      - name: Create tag if needed
+        id: tag_version
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_tag == 'true' }}
+        run: |
+          # Use version from package.json
+          VERSION="v${{ steps.package_version.outputs.package_version }}"
+          
+          # Check if tag already exists
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "Tag $VERSION already exists"
+            echo "tag_name=$VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "Creating new tag $VERSION"
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git tag -a "$VERSION" -m "Release $VERSION"
+            git push origin "$VERSION"
+            echo "tag_name=$VERSION" >> $GITHUB_OUTPUT
+          fi
+
+  release:
+    needs: prepare-release
+    runs-on: ${{ matrix.os }}
+    
+    strategy:
+      matrix:
+        os: [macos-latest, ubuntu-latest, windows-latest]
+      
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build Electron app for macOS
+        if: matrix.os == 'macos-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.MACOS_CERTIFICATE }}
+          CSC_KEY_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ELECTRON_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_FOR_PULL_REQUEST: true
+        run: |
+          # Import certificate
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD=${{ secrets.MACOS_CERTIFICATE_PWD }}
+          
+          # Decode certificate
+          echo ${{ secrets.MACOS_CERTIFICATE }} | base64 --decode > $CERTIFICATE_PATH
+          
+          # Create keychain
+          security create-keychain -p $KEYCHAIN_PASSWORD $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p $KEYCHAIN_PASSWORD $KEYCHAIN_PATH
+          
+          # Import certificate
+          security import $CERTIFICATE_PATH -P ${{ secrets.MACOS_CERTIFICATE_PWD }} -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+          
+          # Set key partition list
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $KEYCHAIN_PASSWORD $KEYCHAIN_PATH
+          
+          # Get app info for debugging
+          APP_ID=$(node -p "require('./package.json').build.appId")
+          APP_VERSION=$(node -p "require('./package.json').version")
+          echo "Building app $APP_ID version $APP_VERSION"
+          
+          # Build the app with webpack first
+          echo "Running webpack build..."
+          npm run build
+          
+          # Ensure build directory exists
+          mkdir -p build
+          
+          # Create simplified entitlements.mac.plist
+          echo '<?xml version="1.0" encoding="UTF-8"?>' > build/entitlements.mac.plist
+          echo '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> build/entitlements.mac.plist
+          echo '<plist version="1.0">' >> build/entitlements.mac.plist
+          echo '<dict>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.cs.allow-jit</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.cs.allow-dyld-environment-variables</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.cs.disable-library-validation</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.cs.debugger</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.network.client</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.network.server</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.files.user-selected.read-write</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.files.downloads.read-write</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.inherit</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.app-sandbox</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.files.all</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '  <key>com.apple.security.automation.apple-events</key>' >> build/entitlements.mac.plist
+          echo '  <true/>' >> build/entitlements.mac.plist
+          echo '</dict>' >> build/entitlements.mac.plist
+          echo '</plist>' >> build/entitlements.mac.plist
+          
+          # Create simplified afterSign.js
+          echo '// This is a placeholder for the afterSign hook' > build/afterSign.js
+          echo '// The real notarization happens in the CI/CD script after the build' >> build/afterSign.js
+          echo 'exports.default = async function () {' >> build/afterSign.js
+          echo '  console.log("Skipping automatic notarization in afterSign hook");' >> build/afterSign.js
+          echo '  return;' >> build/afterSign.js
+          echo '};' >> build/afterSign.js
+          
+          # Run electron-builder with explicit disable of notarization
+          DEBUG=electron-builder npx --no-install electron-builder build --mac \
+            --config.mac.notarize=false \
+            --config.mac.hardenedRuntime=true \
+            --config.mac.gatekeeperAssess=false \
+            --config.mac.identity="${APPLE_TEAM_ID}" \
+            --config.afterSign=build/afterSign.js
+          
+          # Verify the app was actually signed correctly before attempting notarization
+          APP_PATH=$(find release -name "*.app" | head -n 1)
+          if [ -n "$APP_PATH" ]; then
+            echo "Verifying code signature for $APP_PATH"
+            codesign -vvv --deep --strict "$APP_PATH"
+            SIGN_STATUS=$?
+            if [ $SIGN_STATUS -eq 0 ]; then
+              echo "✅ Code signature verification passed."
+            else
+              echo "❌ Code signature verification failed with status: $SIGN_STATUS"
+              echo "Code signature issues must be fixed before notarization can succeed."
+            fi
+          else
+            echo "No .app file found to verify signature."
+          fi
+          
+          # Manual notarization after build
+          if [[ -n "$APPLE_ID" && -n "$APPLE_APP_SPECIFIC_PASSWORD" && -n "$APPLE_TEAM_ID" ]]; then
+            echo "Notarizing application..."
+            # Find the DMG file to notarize
+            DMG_FILE=$(find release -name "*.dmg" | head -n 1)
+            if [ -n "$DMG_FILE" ]; then
+              echo "Found DMG file: $DMG_FILE"
+              
+              # Create a temporary file for the submission output
+              SUBMIT_OUTPUT_FILE=$(mktemp)
+              
+              # Try using xcrun notarytool which is the newer recommended approach
+              echo "Submitting app for notarization..."
+              xcrun notarytool submit "$DMG_FILE" --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --wait --output-format json > $SUBMIT_OUTPUT_FILE 2>&1
+              
+              # Print full output for debugging
+              echo "======================== NOTARIZATION SUBMISSION OUTPUT ========================"
+              cat $SUBMIT_OUTPUT_FILE
+              echo "=============================================================================="
+              
+              # Extract submission ID if available
+              SUBMISSION_ID=$(cat $SUBMIT_OUTPUT_FILE | grep -o '"id": "[^"]*"' | cut -d'"' -f4)
+              
+              if [ -n "$SUBMISSION_ID" ]; then
+                echo "Successfully got submission ID: $SUBMISSION_ID"
+                echo "Fetching detailed notarization log for submission ID: $SUBMISSION_ID"
+                xcrun notarytool log "$SUBMISSION_ID" --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" notarization.log
+                
+                echo "======================== NOTARIZATION LOG ========================"
+                cat notarization.log
+                echo "================================================================="
+                
+                # Check if we need to staple the ticket to the app
+                NOTARIZATION_STATUS=$(xcrun notarytool info "$SUBMISSION_ID" --apple-id "$APPLE_ID" --password "$APPLE_APP_SPECIFIC_PASSWORD" --team-id "$APPLE_TEAM_ID" --output-format json | grep -o '"status": "[^"]*"' | cut -d'"' -f4)
+                
+                if [ "$NOTARIZATION_STATUS" == "Accepted" ]; then
+                  echo "Notarization successful! Stapling ticket to application..."
+                  xcrun stapler staple "$DMG_FILE"
+                else
+                  echo "Notarization failed with status: $NOTARIZATION_STATUS"
+                fi
+              else
+                echo "Failed to get submission ID. Notarization failed."
+                echo "Check the submission output above for more details."
+              fi
+              
+              # Clean up temporary file
+              rm -f $SUBMIT_OUTPUT_FILE
+              
+              echo "Notarization process complete"
+            else
+              echo "No DMG file found for notarization"
+            fi
+          else
+            echo "Skipping notarization (missing credentials)"
+          fi
+        
+      - name: Build Electron app for Linux
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build the app
+          npm run build
+          npx --no-install electron-builder build --linux
+        
+      - name: Build Electron app for Windows
+        if: matrix.os == 'windows-latest'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Build the app
+          npm run build
+          npx --no-install electron-builder build --win
+          
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-artifacts
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.exe
+            release/*.AppImage
+            release/*.deb
+            release/*.yml
+          if-no-files-found: ignore
+          
+  create-release:
+    needs: [prepare-release, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          
+      - name: Move artifacts to release directory
+        run: |
+          mkdir -p release
+          find artifacts -type f -not -path "*/\.git/*" -exec cp {} release/ \;
+          
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.prepare-release.outputs.tag_name || github.ref_name }}
+          draft: false
+          files: release/*
+          name: Release ${{ needs.prepare-release.outputs.tag_name || github.ref_name }}
+          body: |
+            # Trmx Agent ${{ needs.prepare-release.outputs.tag_name || github.ref_name }}
+            
+            ## Automated Release
+            
+            This is an automated release of version ${{ needs.prepare-release.outputs.tag_name || github.ref_name }}
+            
+            ## Downloads
+            
+            - **macOS**: Trmx Agent-*.dmg / Trmx Agent-*-mac.zip
+            - **Windows**: Trmx Agent-Setup-*.exe
+            - **Linux**: Trmx Agent-*.AppImage / Trmx Agent-*.deb 
+            
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Upload versioned release to S3
+        run: |
+          # Extract version from tag (remove 'v' prefix if present)
+          VERSION=${{ needs.prepare-release.outputs.tag_name || github.ref_name }}
+          VERSION=${VERSION#v}
+          echo "Release version: $VERSION"
+          
+          # Create platform-specific directories
+          mkdir -p mac win linux
+          
+          # Move artifacts to respective directories
+          find release -name "*.dmg" -o -name "*.zip" | grep -i mac | xargs -I{} cp {} mac/ || true
+          find release -name "*.exe" | xargs -I{} cp {} win/ || true
+          find release -name "*.AppImage" -o -name "*.deb" | xargs -I{} cp {} linux/ || true
+          
+          # Upload to versioned directories in S3 (without --delete to preserve history)
+          echo "Uploading macOS artifacts to S3..."
+          aws s3 sync mac/ s3://mcpx/builds/mac/$VERSION/ || true
+          
+          echo "Uploading Windows artifacts to S3..."
+          aws s3 sync win/ s3://mcpx/builds/win/$VERSION/ || true
+          
+          echo "Uploading Linux artifacts to S3..."
+          aws s3 sync linux/ s3://mcpx/builds/linux/$VERSION/ || true
+          
+          echo "Release artifacts uploaded to S3 bucket with version: $VERSION" 

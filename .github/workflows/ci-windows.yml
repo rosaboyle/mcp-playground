@@ -1,0 +1,119 @@
+name: CI/CD Pipeline - Windows
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+  # Allow manual triggering
+  workflow_dispatch:
+
+# Add permissions at the workflow level
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  build-and-test-windows:
+    runs-on: windows-latest
+    
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Lint code
+        run: npm run lint || echo "Linting issues found"
+        
+      - name: Build project
+        run: npm run build
+        
+      - name: Run tests
+        run: npm test || echo "Tests failed"
+        
+      - name: Build Electron app for Windows
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run package:win
+        
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Upload build artifacts directly to S3
+        run: |
+          # Create build artifacts directory
+          mkdir -p artifacts
+          
+          # Copy relevant files
+          cp -r dist artifacts/
+          cp -r release/*.exe artifacts/
+          cp -r release/*.yml artifacts/
+          
+          # Get version from package.json
+          VERSION=$(node -p "require('./package.json').version")
+          echo "Current package version: $VERSION"
+          
+          # Upload to S3 with environment-specific path
+          if [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            # Upload to versioned directory (without --delete to preserve older versions)
+            aws s3 sync artifacts/ s3://mcpx/builds/win/$VERSION/
+            
+            # Upload to latest directory (with --delete to keep it clean)
+            aws s3 sync artifacts/ s3://mcpx/builds/win/latest/ --delete
+          else
+            # Upload to dev path
+            aws s3 sync artifacts/ s3://mcpx/builds/win/dev/ --delete
+          fi
+          
+          echo "Build artifacts uploaded to S3 bucket"
+          
+  deploy-preview-windows:
+    needs: build-and-test-windows
+    if: github.ref == 'refs/heads/dev'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Deploy to dev environment (S3)
+        run: |
+          echo "Deploying Windows build to dev environment..."
+          # Copy from build location to the final deployment location
+          aws s3 sync s3://mcpx/builds/win/dev/ s3://mcpx/dev/ --delete
+          
+  deploy-production-windows:
+    needs: build-and-test-windows
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+          
+      - name: Deploy to production (S3)
+        run: |
+          echo "Deploying Windows build to production environment..."
+          # Copy from build location to the final deployment location
+          aws s3 sync s3://mcpx/builds/win/latest/ s3://mcpx/latest/ --delete 

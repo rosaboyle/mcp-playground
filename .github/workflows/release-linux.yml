@@ -1,0 +1,79 @@
+name: Build and Release Linux
+
+on:
+  push:
+    tags:
+      - 'v*' # Run workflow on version tags, e.g. v1.0.0
+  workflow_dispatch: # Allow manual triggering
+
+# Add permissions at the workflow level
+permissions:
+  contents: write
+  packages: write
+  id-token: write
+
+jobs:
+  release-linux:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v4
+        
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Build Electron app for Linux
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run package:linux
+          
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: |
+            release/*.AppImage
+            release/*.deb
+            release/*.yml
+          if-no-files-found: error
+          
+  publish-linux:
+    needs: release-linux
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+      id-token: write
+    
+    steps:
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-artifacts
+          path: release
+          
+      - name: Create Linux release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          draft: false
+          files: release/*
+          name: Linux Release ${{ github.ref_name }}
+          body: |
+            # Trmx Agent Linux ${{ github.ref_name }}
+            
+            ## Automated Linux Release
+            
+            This is an automated Linux release of version ${{ github.ref_name }}
+            
+            ## Downloads
+            
+            - **Linux**: Trmx Agent-*.AppImage / Trmx Agent-*.deb 

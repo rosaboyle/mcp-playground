@@ -1,0 +1,140 @@
+{
+    "name": "trmx-agent",
+    "version": "0.2.4",
+    "description": "Desktop AI Chat Interface built with Airtrain and Electron",
+    "main": "dist/main/index.js",
+    "scripts": {
+        "start": "electron .",
+        "dev": "concurrently \"npm run build:watch\" \"npm run start:dev\"",
+        "start:dev": "wait-on dist/main/index.js && electron . --dev",
+        "build": "webpack --mode production --progress",
+        "clean": "rm -rf dist && rm -rf release",
+        "build:watch": "webpack --mode development --watch",
+        "package": "npm run build && electron-builder build --mac",
+        "package:mac": "node scripts/build-mac.js",
+        "package:mac:simple": "node scripts/simple-mac-build.js",
+        "package:mac:sign": "bash scripts/mac-build-sign-notarize.sh",
+        "package:mac:simple-bash": "bash scripts/mac-simple-build.sh",
+        "package:mac:old": "npm run build && CSC_FOR_PULL_REQUEST=true ELECTRON_TEAM_ID=AIRTRAIN npx electron-builder build --mac",
+        "package:win": "npm run build && npx electron-builder build --win",
+        "package:linux": "npm run build && npx electron-builder build --linux",
+        "analyze": "ANALYZE=true npm run build",
+        "create-tag": "git tag -a v$npm_package_version -m \"Release v$npm_package_version\" && git push origin v$npm_package_version",
+        "postinstall": "npx electron-builder install-app-deps",
+        "lint": "echo \"No linter configured yet\"",
+        "test": "jest",
+        "test:cov": "jest --coverage --coverageReporters=text-summary",
+        "test:cov:details": "jest --coverage --coverageReporters=text",
+        "test:cov:html": "jest --coverage",
+        "test:cov:fast": "NODE_OPTIONS=--no-inspect jest --coverage --coverageReporters=text-summary",
+        "test:cov:details:fast": "NODE_OPTIONS=--no-inspect jest --coverage --coverageReporters=text",
+        "mcp-client": "ts-node src/scripts/mcp-client.ts",
+        "publish": "npm run build && npx electron-builder build --publish always",
+        "check-updates": "ts-node src/scripts/check-updates.ts",
+        "extract-update-logs": "ts-node src/scripts/extract-update-logs.ts",
+        "manage-s3": "ts-node src/scripts/manage-s3-versions.ts"
+    },
+    "author": "Dheeraj Pai <support@airtrain.dev>",
+    "license": "MIT",
+    "build": {
+        "appId": "dev.airtrain.trmx-agent",
+        "productName": "trmx",
+        "files": [
+            "dist/**/*",
+            "package.json"
+        ],
+        "directories": {
+            "output": "release"
+        },
+        "publish": [
+            {
+                "provider": "s3",
+                "bucket": "mcpx",
+                "region": "us-east-1",
+                "acl": "public-read",
+                "endpoint": "https://s3.amazonaws.com",
+                "path": "builds/${os}/${version}"
+            }
+        ],
+        "mac": {
+            "category": "public.app-category.developer-tools",
+            "target": [
+                "dmg",
+                "zip",
+                "pkg"
+            ],
+            "hardenedRuntime": true,
+            "gatekeeperAssess": false,
+            "entitlements": "build/entitlements.mac.plist",
+            "entitlementsInherit": "build/entitlements.mac.plist",
+            "notarize": false
+        },
+        "win": {
+            "target": [
+                "nsis"
+            ]
+        },
+        "linux": {
+            "target": [
+                "AppImage",
+                "deb"
+            ],
+            "category": "Development"
+        }
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "1.9.0",
+        "airtrain": "^0.2.2",
+        "axios": "^1.6.8",
+        "chalk": "^4.1.2",
+        "electron-store": "^8.2.0",
+        "electron-updater": "^6.1.8",
+        "keytar": "^7.9.0",
+        "markdown-it": "^14.1.0",
+        "posthog-js": "^1.234.9",
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1",
+        "react-icons": "^5.1.1",
+        "react-markdown": "^9.0.1",
+        "react-syntax-highlighter": "^15.6.1",
+        "remark-gfm": "^4.0.0",
+        "tailwindcss": "^3.4.3",
+        "uuid": "^9.0.1"
+    },
+    "devDependencies": {
+        "@electron/notarize": "^2.3.0",
+        "@testing-library/jest-dom": "^6.4.2",
+        "@testing-library/react": "^14.2.1",
+        "@types/jest": "^29.5.12",
+        "@types/markdown-it": "^13.0.8",
+        "@types/node": "^20.12.7",
+        "@types/react": "^18.3.1",
+        "@types/react-dom": "^18.3.1",
+        "@types/react-syntax-highlighter": "^15.5.13",
+        "@types/uuid": "^9.0.8",
+        "autoprefixer": "^10.4.19",
+        "concurrently": "^8.2.2",
+        "css-loader": "^6.10.0",
+        "dotenv": "^16.5.0",
+        "electron": "^35.1.5",
+        "electron-builder": "^26.0.12",
+        "html-webpack-plugin": "^5.6.0",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
+        "js-yaml": "^4.1.0",
+        "null-loader": "^4.0.1",
+        "postcss": "^8.4.38",
+        "postcss-loader": "^8.1.1",
+        "process": "^0.11.10",
+        "style-loader": "^3.3.4",
+        "thread-loader": "^4.0.4",
+        "ts-jest": "^29.1.2",
+        "ts-loader": "^9.5.1",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.4.5",
+        "wait-on": "^7.2.0",
+        "webpack": "^5.91.0",
+        "webpack-bundle-analyzer": "^4.10.2",
+        "webpack-cli": "^5.1.4"
+    }
+}

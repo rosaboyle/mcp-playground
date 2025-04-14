@@ -1,0 +1,1 @@
+./scripts/create-signed-zip.sh --app "path/to/your.app" --output "path/to/output" --entitlements "path/to/entitlements.plist"
