@@ -6,7 +6,7 @@ import os from 'os';
 export interface MCPServerConfig {
     command: string;
     args: string[];
-    env: Record<string, string>;
+    env?: Record<string, string>;
 }
 
 export interface MCPConfig {
@@ -154,8 +154,8 @@ export const validateMCPConfig = (config: any): config is MCPConfig => {
             return false;
         }
 
-        // Check env
-        if (!serverConfig.env || typeof serverConfig.env !== 'object') {
+        // Check env if it exists
+        if (serverConfig.env && typeof serverConfig.env !== 'object') {
             console.error(`Invalid env for server ${serverId}:`, serverConfig);
             return false;
         }

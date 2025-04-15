@@ -62,7 +62,7 @@ const MCPConfigEditor: React.FC<MCPConfigEditorProps> = ({ onClose, onConfigSave
 
                 // Validate env (optional, must be an object if present)
                 if (serverConfig.env && (typeof serverConfig.env !== 'object' || Array.isArray(serverConfig.env))) {
-                    errors.push(`Server ${serverName} env must be an object`);
+                    errors.push(`Server ${serverName} env must be an object if provided`);
                 }
             });
 
@@ -187,8 +187,8 @@ const MCPConfigEditor: React.FC<MCPConfigEditorProps> = ({ onClose, onConfigSave
                             onClick={handleSave}
                             disabled={isSaving || validationErrors.length > 0}
                             className={`px-4 py-2 rounded-md ${isSaving || validationErrors.length > 0
-                                    ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                                    : 'bg-primary-500 text-white hover:bg-primary-600'
+                                ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                                : 'bg-primary-500 text-white hover:bg-primary-600'
                                 }`}
                         >
                             {isSaving ? 'Saving...' : 'Save Configuration'}

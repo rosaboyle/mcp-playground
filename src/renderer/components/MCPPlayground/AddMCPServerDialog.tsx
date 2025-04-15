@@ -56,8 +56,9 @@ const AddMCPServerDialog: React.FC<AddMCPServerDialogProps> = ({ existingConfig,
                     errors.push(`Server "${serverId}" must have an "args" array property`);
                 }
 
-                if (!serverConfig.env || typeof serverConfig.env !== 'object') {
-                    errors.push(`Server "${serverId}" must have an "env" object property`);
+                // Check env if it exists
+                if (serverConfig.env && typeof serverConfig.env !== 'object') {
+                    errors.push(`Server "${serverId}" env must be an object if provided`);
                 }
             }
 
@@ -116,7 +117,7 @@ const AddMCPServerDialog: React.FC<AddMCPServerDialogProps> = ({ existingConfig,
         "my-server": {
             "command": "docker",
             "args": ["run", "-i", "--rm", "my-image"],
-            "env": {
+            "env": {  // Optional
                 "API_KEY": "your-api-key"
             }
         }
