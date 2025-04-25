@@ -3,8 +3,7 @@
 A powerful desktop tool for exploring, debugging, and interacting with Model Context Protocol (MCP) servers, with built-in LLM integration. Think of it as "Postman but for MCPs."
 
 ![MCP Playground Application](public/application.png)
-Feel Free to join our Discord Group to connect with more AI Engineers: ![Discord Group Link](https://discord.gg/DsRcA3GwPy)
-
+Feel Free to join our Discord Group to connect with more AI Engineers: https://discord.gg/DsRcA3GwPy
 ## What is Model Context Protocol (MCP)?
 
 MCP is a standardized protocol that enables LLMs (Large Language Models) to discover and use external tools, resources, and prompts. This protocol allows for consistent interaction between AI models and various capabilities, creating more powerful AI applications.
