@@ -1,44 +1,83 @@
-# MCP Playground - Postman for MCPs
+# TRMX MCP Playground
 
-A powerful desktop tool for exploring, debugging, and interacting with Model Context Protocol (MCP) servers, with built-in LLM integration. Think of it as "Postman but for MCPs."
+**The Postman for MCPs**  
+A powerful, open-source desktop tool for exploring, debugging, and monitoring Model Context Protocol (MCP) servers—with built-in LLM integration.  
+Learn more and join our community at [trmx.ai](https://trmx.ai).
+---
 
-![MCP Playground Application](public/application.png)
-Feel Free to join our Discord Group to connect with more AI Engineers: https://discord.gg/DsRcA3GwPy
-## What is Model Context Protocol (MCP)?
+## Catalog
 
-MCP is a standardized protocol that enables LLMs (Large Language Models) to discover and use external tools, resources, and prompts. This protocol allows for consistent interaction between AI models and various capabilities, creating more powerful AI applications.
+1. [What is TRMX MCP Playground?](#what-is-trmx-mcp-playground)
+2. [Why We Built It](#why-we-built-it)
+3. [Welcome: Open Source & Developer Community](#welcome-open-source--developer-community)
+4. [Key Features](#key-features)
+5. [Installation](#installation)
+6. [Usage Guide](#usage-guide)
+7. [Integration Examples](#integration-examples)
+8. [Use Cases](#use-cases)
+9. [Troubleshooting](#troubleshooting)
+10. [Command-Line Exploration](#command-line-exploration)
+11. [License & Acknowledgments](#license--acknowledgments)
 
-You can read more about MCPs in this post - https://pai.dev/model-context-protocol-and-why-it-matters-for-ai-agents-88e0e0a7bb73
+---
 
-## What MCP Playground Does
+## What is TRMX MCP Playground?
 
-MCP Playground helps developers:
+TRMX MCP Playground is your go-to tool for building, testing, debugging, and monitoring MCP servers.  
+Think of it as "Postman, but for MCPs."  
+It’s designed for developers working with the Model Context Protocol (MCP)—a standard that lets LLMs (Large Language Models) discover and use external tools, resources, and prompts in a consistent way.
 
-- Debug and test MCP servers
-- Connect multiple LLMs to MCP servers
-- Visualize and inspect tool calls, resources, and prompts
-- Load tools directly into supported LLM providers
-- Run multiple server connections in parallel
-- Log everything locally for detailed debugging
+- Learn more about MCP: [pai.dev/model-context-protocol-and-why-it-matters-for-ai-agents-88e0e0a7bb73](https://pai.dev/model-context-protocol-and-why-it-matters-for-ai-agents-88e0e0a7bb73)
+---
+
+## Why We Built It
+
+We noticed the developer experience for MCP was broken—testing, debugging, and monitoring MCP servers was painful.  
+Our vision is twofold:
+
+1. **Stage 1:** Build a local MCP playground for developers to easily build, test, debug, and monitor their local MCPs.
+2. **Stage 2:** Launch a serverless MCP platform so anyone can deploy, scale, and share MCPs without managing infrastructure.
+
+Read more about our motivation and roadmap:  
+- [Build Local MCP Server or Remote Serverless MCP? (Medium)](https://medium.com/trmx-ai/build-local-mcp-server-or-remote-serverless-mcp-58fc195fbe28)  
+- [First Release Details (Medium)](https://medium.com/trmx-ai/mcp-playground-an-attemt-to-fix-the-broken-experience-for-the-mcp-client-developers-a50dd2cd999f)
+
+---
+
+## Welcome: Open Source & Developer Community
+
+We made TRMX MCP Playground open source because we believe the future of MCP should be built by the community, for the community.  
+We’re not just looking for users—we’re looking for collaborators, contributors, and pioneers.
+
+- **Official Working Group:**  
+  We run an open, official working group to guide the project’s direction, set priorities, and build the next generation of MCP tools together.
+- **Weekly Meetings:**  
+  Join our regular sessions to discuss features, share feedback, and help shape the roadmap. Calendar updates coming soon!
+- **Open Collaboration:**  
+  All contributions are welcome—code, docs, ideas, and feedback.  
+  If you want to help define how MCP servers are built and used, you’re in the right place.
+
+**Join us:**  
+- [Discord Community](https://discord.gg/DsRcA3GwPy)  
+- [trmx.ai](https://trmx.ai)
+---
 
 ## Key Features
 
-- **MCP Server Debugging**: Connect to any MCP server and explore its tools, resources, and prompts
-- **Built-in LLM Integration**: Connect directly with several LLM providers:
-  - Fireworks AI
-  - Groq
-  - (More providers coming soon)
-- **Tool Exploration**: List and inspect all available tools from MCP servers
-- **Resource & Prompt Discovery**: View resources and prompts provided by MCP servers
-- **Multiple Parallel Connections**: Connect to multiple MCP servers simultaneously
-- **Comprehensive Logging**: Detailed local logs of all operations and responses
-- **Tool Integration**: Load MCP tools directly into supported LLMs
-- **Modern Interface**: Clean, intuitive UI for easy interaction with MCPs
+- **MCP Server Debugging**: Connect to any MCP server and explore its tools, resources, and prompts.
+- **Built-in LLM Integration**: Connect directly with LLM providers like Fireworks AI and Groq (more coming soon).
+- **Tool & Resource Exploration**: List and inspect all available tools, resources, and prompts from MCP servers.
+- **Multiple Parallel Connections**: Connect to and monitor multiple MCP servers at once.
+- **Comprehensive Logging**: Detailed local logs for all operations and responses.
+- **Modern Interface**: Clean, intuitive UI for easy interaction.
+- **Open Source**: 100% open, MIT-licensed, and built with community feedback.
+
+![MCP Playground Application](public/application.png)
+---
 
 ## Installation
 
-### Prerequisites
-
+**Prerequisites**
 - Node.js (v20.16.0 or higher)
 - npm (10.8.1 or higher)
 
