@@ -3,9 +3,10 @@
 **The Postman for MCPs**  
 A powerful, open-source desktop tool for exploring, debugging, and monitoring Model Context Protocol (MCP) servers—with built-in LLM integration.  
 Learn more and join our community at [trmx.ai](https://trmx.ai).
+
 ---
 
-## Catalog
+## Table of Contents
 
 1. [What is TRMX MCP Playground?](#what-is-trmx-mcp-playground)
 2. [Why We Built It](#why-we-built-it)
