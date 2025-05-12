@@ -6,7 +6,7 @@ Learn more and join our community at [trmx.ai](https://trmx.ai).
 
 ---
 
-## Table of Content
+## Table of Contents
 
 1. [What is TRMX MCP Playground?](#what-is-trmx-mcp-playground)
 2. [Why We Built It](#why-we-built-it)
